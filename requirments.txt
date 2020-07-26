@@ -1,0 +1,4 @@
+aiogram==2.9.2
+aiohttp==3.6.2
+beautifulsoup4==4.9.1
+requests==2.22.0
