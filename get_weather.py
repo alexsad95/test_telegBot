@@ -4,6 +4,9 @@ import datetime
 
 import requests
 from bs4 import BeautifulSoup
+import logging
+
+logger = logging.getLogger('bot_api.get_weather')
 
 
 def get_30_day_forecast_content(html):
@@ -33,24 +36,37 @@ def get_30_day_forecast_content(html):
 
 def get_our_item(finded_info, date_for_search):
     '''Берёт с прогноза погоды необходимую дату'''
-    date_for_search = datetime.datetime.fromisoformat(date_for_search)
-    current_date = date_for_search.strftime("%d %B, %a").lower()
-    our_finded_item = None
-    for item in finded_info:
-        if item['date'] == current_date:
-            our_finded_item = item
-    return our_finded_item
+    try:
+        date_for_search = datetime.datetime.fromisoformat(date_for_search)
+        current_date = date_for_search.strftime("%d %B, %a").lower()
+        our_finded_item = None
+        for item in finded_info:
+            date = datetime.datetime.strptime(item['date'] + ", " + str(datetime.datetime.now().year), "%d %B, %a, %Y")
+            date = date.strftime("%d %B, %a").lower()
+            if date == current_date:
+                our_finded_item = item
+                return our_finded_item
+        if not our_finded_item:
+            logging.warning('Не была найдена погода. our_finded_item: %s', our_finded_item)
+    except ValueError as e:
+        logger.warning(e, exc_info=True)
+        logger.info('date_for_search: ' + str(date_for_search))
+    except Exception as e:
+        logger.error(e, exc_info=True)
+
 
 def get_weather_info(place, date_for_search):
-    '''Основная фун-ия, вызывает остальные, парсит и возвращает данные по погоде'''
-    response = requests.get('https://yandex.md/weather/search?request='+place).text
-    soup = BeautifulSoup(response, 'html.parser')
+    try:
+        '''Основная фун-ия, вызывает остальные, парсит и возвращает данные по погоде'''
+        response = requests.get('https://yandex.md/weather/search?request='+place).text
+        soup = BeautifulSoup(response, 'html.parser')
 
-    a_href = soup.find('div', class_='place-list place-list_ancient-design_yes').li.a.get('href')
-    url = 'https://yandex.md'+a_href[:-8]+'/month'
-    
-    html = requests.get(url).text
-    items = get_30_day_forecast_content(html)
-    finded_item = get_our_item(items, date_for_search)
+        a_href = soup.find('div', class_='place-list place-list_ancient-design_yes').li.a.get('href')
+        url = 'https://yandex.md'+a_href[:-8]+'/month'
+        html = requests.get(url).text
+        items = get_30_day_forecast_content(html)
+        finded_item = get_our_item(items, date_for_search)
+        return finded_item
 
-    return finded_item
+    except Exception as e:
+        logger.error(e, exc_info=True)

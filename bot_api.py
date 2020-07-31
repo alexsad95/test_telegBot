@@ -6,10 +6,12 @@ from aiogram.types import InputFile
 import config
 from get_weather import get_weather_info
 from vk_api_async import do_all_this_proccess
+from log import configured_logger
 
+logger = logging.getLogger('bot_api')
+logger = configured_logger(logger)
 
 API_TOKEN = config.TOKEN_BOT
-logging.basicConfig(level=logging.INFO)
 
 bot = Bot(token=API_TOKEN)
 dp = Dispatcher(bot)
@@ -18,9 +20,11 @@ dp = Dispatcher(bot)
 @dp.message_handler(commands='vk_api')
 async def get_vk_group_articles(message):
     command = message.text.split()[1:]
+
     if len(command) == 0:
         await message.answer('Введите домен группы')
         return
+
     group = command[0]
     
     await dp.loop.create_task(do_all_this_proccess(group))
@@ -40,13 +44,18 @@ async def do_help_command(message):
 @dp.message_handler(commands=['weather'])
 async def get_weather_forcast(message):
     command = message.text.split()[1:]
+
+    if len(command) != 2:
+        await message.answer('Не правильно введены параметры')
+        return
+
     place = command[0]
     date_for_search = command[1]
 
     finded_item = get_weather_info(place, date_for_search)
-
     if not finded_item:
-        output_message = 'Укажите прогноз на предстоящие дни, а не прошедшие'
+        output_message = 'Не правильно введена дата, или что-то не то'
+        logger.error('Find_item is None')
     else:
         output_message = f"В городе {place} на {date_for_search}: \n\
 - температура {finded_item['temp']}°С \n\
