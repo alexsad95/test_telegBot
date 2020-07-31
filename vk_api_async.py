@@ -85,7 +85,7 @@ async def do_all_this_proccess(domain):
             articles[i].append(body)
 
         # запись всего в файл csv
-        with open('post_json.csv', 'w') as file:
+        with open('articles.csv', 'w') as file:
             csv_manager = csv.writer(file)
             csv_manager.writerow((
                 'title', 'url', 'body', 
